@@ -24,7 +24,7 @@
 單週期：**一條指令在一個 clock cycle 內從 fetch 到 writeback 全部完成**。
 資料路徑（datapath）與控制單元（control unit）分離。
 
-架構圖:![alt text](image.png)
+架構圖:![alt text](SC_CPU.png)
 
 圖中可見：
 - **上半部（粉紅）為 Control Unit**：Main Decoder 依 opcode 產生控制訊號與 `alu_op`，
