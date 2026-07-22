@@ -53,6 +53,56 @@
 - **不用 enable（MDR、A、B、ALUOut）**：這些存的是「這個 cycle 剛算出的東西」，
   本來就該每個 cycle 反映最新計算，即時更新才正確。
 
+### 4. SLT 用減法器推導，不直接用 `$signed` 比較
+
+直接寫 `$signed(a) < $signed(b)` 會另生一個比較器，跟已有的減法器重複、浪費面積。
+真實硬體**重用減法器**：`a < b` 等價於 `a - b < 0`，看減法結果的符號位即可。
+
+但只看符號位會在**溢位時被騙**。例（8-bit）：`-128 - 1`，正確答案 `-128 < 1` 應為 1，
+但硬體算出 `1000_0000 - 0000_0001 = 0111_1111`，符號位變 0（看似正）→ 誤判。
+原因是 `-129` 超出範圍溢位、符號位翻掉。所以修正為：
+
+```
+slt = diff[31] ^ overflow          // 沒溢位信符號位，溢位就翻回來
+overflow = (a[31] != b[31]) && (diff[31] != a[31])
+```
+
+**SLTU 不需要這套**：無號沒有符號位概念，看減法借位即可，直接比。
+有號無號判斷機制不同，這是 RISC-V 把 SLT / SLTU 分成兩條指令的原因。
+
+> 關鍵測資：`SLT(0x80000000, 1)=1` 而 `SLTU(0x80000000, 1)=0`。
+> 漏掉 XOR overflow 時 SLT 會算成 0，這組能抓出來。
+
+### 5. Register File：x0 兩邊都擋
+
+寫入時跳過 `A3==0`，讀出時 `A1/A2==0` 強制回 0。
+只擋寫的話，未初始化的 `mem[0]` 讀出來會是 x，所以讀也要擋。
+讀做組合（同一 cycle 內完成「給位址→拿資料→存進 A/B」）、寫做同步（值整個 cycle 穩定、避免組合迴路）。
+
+### 6. Datapath：ALU 輸出分兩條路
+
+ALU 的輸出同時接 **ALUResult**（直接輸出）與 **ALUOut**（過暫存器），用 Result mux 選：
+
+- **ALUResult**：當場要用，如 Fetch 算 PC+4 要「這個 cycle 就寫回 PC」。
+- **ALUOut**：下個 cycle 才用，如 branch 目標先算好存著。
+
+PC 的輸入接 `Result`（與 register writeback 共用同一個 mux 輸出）：
+Fetch 時 Result 選 ALUResult（PC+4），branch/jal 時選 ALUOut（目標位址）。
+單一 memory 的位址接 AdrSrc mux，fetch 選 PC、load/store 選算好的位址，達成兩用。
+
+---
+
+## 開發進度
+
+- [x] 零件：ALU、Register File、Extend、Memory、中間暫存器
+- [x] Datapath 接線 + 手動逐 cycle 驗證（addi 走完 Fetch→Decode→Execute→WriteBack，x1 正確寫回 10）
+- [ ] Control FSM（進行中）
+- [ ] Load/Store 延伸單元、整合測試
+
+**mux 編碼**：SrcA `00`=PC `01`=OldPC `10`=A｜SrcB `00`=B `01`=Imm `10`=4｜Result `00`=ALUOut `01`=MDR `10`=ALUResult｜Adr `0`=PC `1`=Result
+
+**已知待處理的坑**：jalr 目標要 `& ~1`；auipc 用 OldPC 不是 PC+4；B/J 立即數位元重排；load 延伸單元未接（目前只有 lw 對）。
+
 ---
 
 ## 目標指令集：RV32I（37 條）
