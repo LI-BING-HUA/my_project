@@ -132,6 +132,69 @@ memory 位址接 AdrSrc mux：fetch 選 PC、load/store 選算好的位址（Res
 
 ---
 
-## 七、Control FSM（進行中）
+## 七、Control 架構（Harris 標準：FSM + 兩個 decoder）
+
+多週期的控制訊號要**依當前 cycle（state）而變**（例如 RegWrite 只在 WriteBack=1），
+所以核心是一個 FSM，而不是單週期那種純組合的 main decoder。整體分三塊：
+
+- **主 FSM**：狀態機，每個狀態輸出對應的時序控制訊號（PCWrite / IRWrite / RegWrite /
+  MemWrite / AdrSrc / ALUSrcA / ALUSrcB / ResultSrc / ALUOp），並決定狀態轉移。
+- **ALU Decoder**：把 `ALUOp + funct3 + funct7b5 + op` 翻譯成 `ALUControl`（跟時序無關）。
+- **Instr Decoder**：看 `op` 決定 `ImmSrc`（立即數格式，整條指令期間固定，跟時序無關）。
+
+ImmSrc 之所以獨立出來、不放進 FSM，是因為它只跟「指令類型」有關、跟「走到第幾個 cycle」無關。
+
+### ALU Decoder 的兩個陷阱
+
+- **funct3=000（add/sub）**：只有 R-type 看 funct7b5（1=sub）；
+  I-type 的 addi 永遠是 add，**不能看 funct7**——addi 的 `instr[30]` 是立即數的一部分，
+  拿來判斷會誤判成 sub。所以要用 `op` 區分 R-type / I-type。
+- **funct3=101（srl/sra）**：R-type 和 I-type **都看 funct7b5**——
+  srli/srai 的移位量只用低 5 位，funct7 位置正好拿來區分邏輯/算術右移。
+
+### Branch 走 ALUOp=01，依 funct3 細分
+
+beq/bne→sub、blt/bge→slt、bltu/bgeu→sltu。
+（起初誤把 branch 放進 ALUOp=10 的 op=99，會導致 blt 等走到固定 sub 而算錯；
+ 正確做法是 branch 自成 ALUOp=01 並在其中依 funct3 分流。）
+
+---
+
+## 八、Result mux 的兩條路：ALUResult vs ALUOut
+
+Result mux 同時接 **ALUResult**（ALU 直接輸出）與 **ALUOut**（過暫存器一拍），
+這兩條路**不是二選一的設計，而是服務不同目的**，由 FSM 依當前狀態選：
+
+| 狀態 | ResultSrc | 選什麼 | 為什麼 |
+|------|-----------|--------|--------|
+| Fetch | 10 | ALUResult | PC+4 要「當場」寫回 PC，不能等下個 cycle |
+| ALU_WB | 00 | ALUOut | Execute 算好存進 ALUOut，下個 cycle 才寫回暫存器 |
+| Mem_WB (load) | 01 | MDR | 寫回 memory 讀出的資料 |
+
+所以：**PC 更新走 ALUResult 直接路**（非當場寫不可），
+**暫存器寫回走 ALUOut 暫存器路**（下個 cycle 才寫）。兩條都保留，各有專職。
+
+### 為什麼 R-type 不在 Execute 直接寫回（省一個 cycle）？
+
+技術上可行：Execute 時 ResultSrc 選 ALUResult(10)，同 cycle 算完直接寫回暫存器，R-type 只要 3 個 cycle。
+但 Harris 選擇**拆成 Execute（算，存 ALUOut）→ ALU_WB（從 ALUOut 寫回）兩個 cycle**，原因是：
+
+多週期的核心哲學是**每個 cycle 只做一件事、工作量小、critical path 短**，
+藉此把 clock frequency 拉高。若在一個 cycle 塞「ALU 運算 + 過 mux + 寫暫存器」，
+那個 cycle 的關鍵路徑會變長，成為瓶頸，違背多週期的初衷。
+而且均勻的 cycle 之後**比較好 pipeline 化**。所以寧可多一個 cycle 換取每個 cycle 短而均勻。
+
+---
+
+## 九、狀態圖（推導中）
+
+前兩個狀態所有指令共用：
+- **Fetch**：抓指令進 IR/OldPC、算 PC+4 寫回 PC
+- **Decode**：讀 rs1/rs2 進 A/B、算 branch/jal 目標（OldPC+imm）備用
+
+Decode 之後**依 op 分岔**到不同狀態序列：
+
+- **R-type**：Execute（A op B，存 ALUOut）→ ALU_WB（ResultSrc=00 寫回）→ Fetch
+- （其餘指令的狀態序列推導中）
 
 （做到再補）
