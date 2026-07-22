@@ -178,25 +178,53 @@ SLTU（無號）**沒有溢位問題**——無號數沒有符號位的概念，
 
 ---
 
-## 待完成
+### Datapath (`DataPath.v`)
 
-- [ ] Datapath 接線（四個關鍵 mux：SrcA / SrcB / ResultSrc / AdrSrc）
-- [ ] Control FSM（約 14 個狀態，多週期的主菜）
-- [ ] Load/Store 的延伸單元與 byte enable
-- [ ] 整合測試（跑一段測試程式驗證各類指令）
+已完成 datapath 接線，把上述零件與四個 mux 連成完整資料通路。
+控制訊號全部拉成 input port（之後由 controller 的 FSM 產生），
+狀態訊號 `op` / `funct3` / `funct7b5` / `zero` 輸出給 controller。
 
-### 四個關鍵 mux（datapath 的靈魂）
+**mux 編碼約定**（datapath 與之後的 controller 必須一致）：
 
-- **SrcA mux**：ALU 第一輸入 → PC / OldPC / A(rs1)
-- **SrcB mux**：ALU 第二輸入 → B(rs2) / ImmExt / 4
-- **ResultSrc mux**：寫回的值 → ALUOut / MDR(延伸後) / PC / ImmExt(lui)
-- **AdrSrc mux**：memory 位址 → PC(fetch) / ALUOut(load/store)
+| mux | 選擇訊號 | 00 | 01 | 10 |
+|-----|---------|----|----|----|
+| SrcA | `ALUSrcA` | PC | OldPC | A (rs1) |
+| SrcB | `ALUSrcB` | B (rs2) | ImmExt | 4 |
+| Result | `ResultSrc` | ALUOut | Data (MDR) | ALUResult |
+| Adr | `AdrSrc` | PC | Result | — |
 
-### 已知待處理的坑
+**關鍵接線決策**：
+
+- **PC 的輸入接 `Result`**：PC 與 register writeback 共用同一個 Result mux 的輸出。
+  Fetch 時 ResultSrc 選 ALUResult（PC+4），branch/jal 時選 ALUOut（目標位址）。
+- **ALU 輸出分兩條路**：`ALUResult`（直接輸出，當場要用，如 Fetch 算 PC+4）
+  與 `ALUOut`（過暫存器，下個 cycle 才用，如 branch 目標先算好存著）。
+  靠 Result mux 選要哪一條。
+- **OldPC 與 IR 共用 `IRWrite`**：兩者都在 Fetch 同一個 cycle 寫入，故共用 enable。
+- **memory 位址接 AdrSrc mux**：fetch 時選 PC、load/store 時選 Result（=ALUOut 算出的位址），
+  單一 memory 兩用。
+
+**已驗證**：以手動逐 cycle 餵控制訊號的方式（自己扮演 FSM），
+走完一條 `addi x1, x0, 10` 的完整生命週期並檢查每個 cycle 的 datapath 狀態：
+
+| Cycle | 動作 | 給的控制訊號 | 驗證點 |
+|-------|------|-------------|--------|
+| Fetch | 抓指令、算 PC+4 | AdrSrc=0, IRWrite=1, ALUSrcA=00(PC), ALUSrcB=10(4), ALUControl=0000, ResultSrc=10(ALUResult), PCWrite=1 | Instr 載入正確、PC=4、OldPC=0 |
+| Decode | 讀 rs1/rs2 進 A/B | ALUSrcA=01(OldPC), ALUSrcB=01(Imm), ImmSrc=I | A、ImmExt 正確 |
+| Execute | A + ImmExt | ALUSrcA=10(A), ALUSrcB=01(Imm), ALUControl=0000 | ALUOut = 10 |
+| WriteBack | 寫回 rd | ResultSrc=00(ALUOut), RegWrite=1 | x1 = 10 |
+
+結果全部正確，代表 datapath 的 I-type 路徑接線無誤、mux 編碼一致。
+先手動驗證 datapath（把它當成唯一變數釘死），之後寫 FSM 出錯時就能確定是 FSM 的問題，
+不必再懷疑 datapath 接線——這是 datapath / control 分離的好處。
+
+### 已知待處理的坑（記著，做到再處理）
 
 - `jalr` 目標位址要清掉最低位：`(rs1 + imm) & ~1`
 - `auipc` 用的是 **OldPC**（這條指令自己的位址），不是 PC+4
 - B-type / J-type 立即數位元重排，接錯時波形看起來對但會跳錯地方
+- load 資料（MDR）目前直接進 Result mux，尚未接延伸單元，
+  故 `lb/lh/lbu/lhu` 還不正確（只有 `lw` 對），之後補 Load Unit
 
 ---
 
