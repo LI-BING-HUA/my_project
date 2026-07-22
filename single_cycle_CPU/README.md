@@ -67,14 +67,6 @@
 | `Main_Decoder.v` | 主解碼器：依 opcode 產生所有控制訊號（RegWrite / ALUSrc / MemWrite / ResultSrc / ImmSrc / ALUOp 等）。 |
 | `ALU_Decoder.v` | ALU 解碼器：依 ALUOp + funct3 + funct7[5] 決定 ALU 要做哪種運算。 |
 
-### 自刻 CLA 加法器
-
-| 模組 | 功能 |
-|------|------|
-| `CLA4.v` | 4-bit carry-lookahead adder，由 4 個 full adder + 進位產生邏輯組成。 |
-| `CLG.v` | Carry-Lookahead Generator：用 generate/propagate 平行算出各級進位。 |
-| `FA.v` / `FA_2.v` | Full Adder，同時輸出 sum 與 generate/propagate 訊號。 |
-
 ### FPGA 週邊
 
 | 模組 | 功能 |
@@ -123,13 +115,7 @@ control unit 再看結果決定跳不跳：
 - **Load（`Load_Unit`）**：先讀出整個 word，再依 funct3 + 位址低 2 位選出要的 byte/half，
   並做符號延伸（lb/lh）或零延伸（lbu/lhu）。lw 直接原樣輸出。
 
-### 4. 自己刻 CLA 而非直接用 `+`
-
-加法器用 4-bit carry-lookahead 手刻（generate/propagate 平行算進位），
-而不是直接寫 `A + B` 讓合成器自動生。這是為了理解進位傳播的原理與延遲差異
-（ripple carry 要一級一級等，CLA 平行算進位）。
-
-### 5. FPGA 單步執行 + 七段 debug
+### 4. FPGA 單步執行 + 七段 debug
 
 因為 FPGA 的 clock 太快，肉眼無法觀察每條指令的效果，所以：
 - 用按鈕（去彈跳 + 邊緣偵測）產生 **step 脈衝**，一次只讓 PC 前進一條指令。
