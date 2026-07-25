@@ -41,7 +41,7 @@
 架構圖:![alt text](SC_CPU.png)
 
 圖中可見：
-- **上半部（粉紅）為 Control Unit**：Main Decoder 依 opcode 產生控制訊號與 `alu_op`，
+- **上半部（藍）為 Control Unit**：Main Decoder 依 opcode 產生控制訊號與 `alu_op`，
   ALU Decoder 再依 `alu_op` + funct3 + funct7[5] 產生 `alu_control`；
   `branch_taken` 由 funct3 選擇 `zero` 或 `alu_result[0]`，與 branch/jump/jalr 一起決定 `PCSrc`。
 - **下半部（橘）為 Datapath**：PC → Instruction Memory → Register File → ALU → Data Memory → Load Unit → 寫回，
