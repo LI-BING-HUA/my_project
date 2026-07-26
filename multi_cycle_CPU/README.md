@@ -35,14 +35,14 @@
 
 ```
 FETCH → DECODE → ┬ MEMADR → MEMREAD → MEMWB      (load)
-                  ├ MEMADR → MEMWRITE             (store)
-                  ├ EXECUTER → ALUWB              (R-type)
-                  ├ EXECUTEI → ALUWB              (I-type ALU)
-                  ├ BEQ                           (branch，含 6 種 funct3)
-                  ├ LUI → ALUWB                   (lui)
-                  │      ALUWB                    (auipc，DECODE 內直接算完)
-                  ├ JAL → ALUWB                   (jal)
-                  └ JALR → JAL → ALUWB            (jalr)
+                 ├ MEMADR → MEMWRITE             (store)
+                 ├ EXECUTER → ALUWB              (R-type)
+                 ├ EXECUTEI → ALUWB              (I-type ALU)
+                 ├ BEQ                           (branch，含 6 種 funct3)
+                 ├ LUI → ALUWB                   (lui)
+                 │ ALUWB                         (auipc，DECODE 內直接算完)
+                 ├ JAL → ALUWB                   (jal)
+                 └ JALR → JAL → ALUWB            (jalr)
 ```
 不同指令用剛好夠的 cycle 數：R-type/I-type 4 cycle、branch 3 cycle、load 5 cycle、jalr 5 cycle。
 
