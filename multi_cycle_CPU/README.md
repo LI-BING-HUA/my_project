@@ -45,15 +45,19 @@ FETCH → DECODE → ┬ MEMADR → MEMREAD → MEMWB      (load)
                  └ JALR → JAL → ALUWB            (jalr)
 ```
 不同指令用剛好夠的 cycle 數：R-type/I-type 4 cycle、branch 3 cycle、load 5 cycle、jalr 5 cycle。
-
-- **Datapath**：Point Counter (PC)、單一 Memory、Register File、ALU、Extend，加上中間暫存器
+ 
+架構圖：![alt text](MC_CPU.png)
+ 
+圖中可見：
+- **上半部（藍）為 Control Unit**：`Main_FSM` 依 opcode 產生所有控制訊號與 `ALUOp`，
+  `ALU_Decoder` 再依 `ALUOp` + `funct3` + `funct7[5]` 產生 `ALUControl`，`Instr_Decoder` 依 opcode 產生 `ImmSrc`；
+  `branch_taken` 由 `funct3` 選擇 `Zero` 或 `ALUResult[0]`，跟 `Branch` / `PCUpdate` 一起 OR 出最終的 `PCWrite`。
+- **下半部（橘）為 Datapath**：Point Counter (PC)、單一 Memory、Register File、ALU、Extend，加上中間暫存器
   （OldPC / IR(Instr) / A / WriteData / ALUOut / Data(MDR)）與四個多工器（SrcA 4-to-1 / SrcB 3-to-1 / Result 3-to-1 / Adr 2-to-1）。
-- **Control Unit**：由 `Main_FSM`（狀態機，依 opcode 決定狀態轉移與各控制訊號）、`ALU_Decoder`（依 ALUOp + funct3 + funct7[5] 決定 `alu_control`）、`Instr_Decoder`（依 opcode 決定 `imm_src`）三塊組成；`branch_taken` 依 funct3 選擇 `zero` 或 `alu_result[0]`，再跟 `Branch` / `PCUpdate` 一起 OR 出最終的 `PCWrite`。
-
 ---
-
+ 
 ## 模組
-
+ 
 | 模組 | 功能 |
 |------|------|
 | `multi_cycle_CPU.v` | 頂層，把 `Control_Unit` 和 `DataPath` 接起來。 |
@@ -70,13 +74,13 @@ FETCH → DECODE → ┬ MEMADR → MEMREAD → MEMWB      (load)
 | `register_en.v` | 帶 enable 的暫存器（PC / OldPC / IR）。 |
 | `register_nen.v` | 無 enable 的暫存器（A / WriteData / MDR(Data) / ALUOut）。 |
 | `mux2.v` / `mux3.v` / `mux4.v` | 多工器（Adr 用 2-to-1、SrcB / Result 用 3-to-1、SrcA 用 4-to-1）。 |
-
+ 
 ---
-
+ 
 ## 測試程式
-
+ 
 `Memory.v` 的 `initial` 內建一段測試程式，依序驗證：
-
+ 
 1. **R-type 全部**：add / sub / sll / slt / sltu / xor / srl / sra / or / and
 2. **I-arith 全部**：addi / slli / slti / sltiu / xori / srli / srai / ori / andi
 3. **Store / Load word**：sw → lw，不同 offset
@@ -85,13 +89,12 @@ FETCH → DECODE → ┬ MEMADR → MEMREAD → MEMWB      (load)
 6. **U-type**：lui、auipc
 7. **Byte / Half load-store**：sb/lb/lbu、sh/lh/lhu
 8. **完整 branch 家族**：bne、blt、bltu、bge、bgeu 各自 taken / not-taken 情境
-
 執行後用 `iverilog` + testbench dump 暫存器檔案，逐一比對每行測試程式註解標註的預期值，全部吻合。
-
+ 
 ---
-
+ 
 ## 如何執行
-
+ 
 ### 模擬（simulation）
 ```bash
 iverilog -o sim.out tb.v Main_FSM.v ALU_Decoder.v mux4.v Register_File.v mux2.v \
@@ -100,11 +103,11 @@ iverilog -o sim.out tb.v Main_FSM.v ALU_Decoder.v mux4.v Register_File.v mux2.v 
 vvp sim.out
 ```
 或用 Vivado 的 `Open Elaborated Design → Schematic` 檢視 datapath 接線。
-
+ 
 ---
-
+ 
 ## 目標指令集：RV32I（37 條，全部支援）
-
+ 
 | 類型 | 指令 |
 |------|------|
 | R-type | add, sub, sll, slt, sltu, xor, srl, sra, or, and |
@@ -115,10 +118,10 @@ vvp sim.out
 | B-type | beq, bne, blt, bge, bltu, bgeu |
 | U-type | lui, auipc |
 | J-type | jal |
-
+ 
 ---
-
+ 
 ## 後續
-
+ 
 多週期版本完成後，下一步是 **管線化 (pipeline)** 版本，
 處理 data hazard（forwarding / stall）與 control hazard（branch prediction / flush）。
