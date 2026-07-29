@@ -8,3 +8,4 @@
 <img width="954" height="253" alt="螢幕擷取畫面 2026-07-29 205644-Photoroom" src="https://github.com/user-attachments/assets/95be194e-043f-4de3-a79b-fca8511e6929" />
 <img width="823" height="292" alt="螢幕擷取畫面 2026-07-29 210157-Photoroom" src="https://github.com/user-attachments/assets/cd752431-c37a-496d-ae80-dc613f32f97c" />
 <img width="477" height="145" alt="螢幕擷取畫面 2026-07-29 210404-Photoroom" src="https://github.com/user-attachments/assets/5a032959-536c-4a3e-83ff-4187328769b2" />
+<img width="622" height="183" alt="螢幕擷取畫面 2026-07-29 210631-Photoroom" src="https://github.com/user-attachments/assets/41f44781-23d5-4d0e-a2f0-74d18352784e" />
