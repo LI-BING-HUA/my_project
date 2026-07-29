@@ -280,7 +280,7 @@ endmodule
 
 ---
 
-## Verilog Language - More verilog features - Combinational for-loop : Vector reversal 
+## Verilog Language - More verilog features - Combinational for-loop : Vector reversal 2 
 <img width="605" height="50" alt="image" src="https://github.com/user-attachments/assets/ee586388-0ad8-40d3-a3d7-c5308dcf690e" />
 
 ### 基本架構
