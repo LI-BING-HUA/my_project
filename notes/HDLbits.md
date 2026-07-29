@@ -67,7 +67,7 @@
 ---
 
 ## Verilog Language - Vectors - Vector concatenation operator
-<img width="360" height="125" alt="Vector3-removebg-preview" src="https://github.com/user-attachments/assets/e0621ce2-1923-471e-b20f-27c9728e38c2" />
+<img width="437" height="136" alt="image" src="https://github.com/user-attachments/assets/65d0a908-5f06-4e57-80ca-5ccd624ca11a" />
 
 ```verilog
 {a, b, c, d, e, f, 2'b11}     // ✅ 正確
