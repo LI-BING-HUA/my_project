@@ -14,3 +14,4 @@
 <img width="588" height="194" alt="image" src="https://github.com/user-attachments/assets/95d13710-f1f0-4b6b-8f3f-4444db1d79c2" />
 <img width="1350" height="507" alt="Exams_2014q4-Photoroom" src="https://github.com/user-attachments/assets/ed58832e-c431-4e21-a041-33b5b1df06df" />
 
+<img width="823" height="355" alt="螢幕擷取畫面 2026-07-29 213708-Photoroom" src="https://github.com/user-attachments/assets/928c3cb5-68a1-46c0-bbdb-bcd9d9a6ebd8" />
