@@ -16,7 +16,7 @@
 - 🔴 Modules: Hierarchy - Adder-subtractor
 - 🟢 Procedures - Priority encoder
 - 🔴 Procedures - Avoiding latches
-- 🟢 More verilog features - Combinational for-loop: Vector reversal
+- 🟢 More verilog features - Combinational for-loop: Vector reversal 2
 - 🟡 More verilog features - Combinational for-loop: 255-bit popcount
 - 🟡 More verilog features - Generate for-loop: 100-bit binary adder 2
 - 🔴 More verilog features - Generate for-loop: 100-digit BCD adder
